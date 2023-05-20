@@ -4,32 +4,48 @@ import "firebase/compat/auth";
 import "firebase/compat/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBxDeq7IHKZJmRSEs9bl6oXfiP4MeUbIs8",
-  authDomain: "nextfire-app-323d1.firebaseapp.com",
-  projectId: "nextfire-app-323d1",
-  storageBucket: "nextfire-app-323d1.appspot.com",
-  messagingSenderId: "97493394696",
-  appId: "1:97493394696:web:e1de9fa20b6153554478bd",
-  measurementId: "G-SNW532MZNZ",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENTID,
 };
 
 // Sometimes NextJS will try to run the code in this file twice
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
 export const auth = firebase.auth();
 export const googleAuthProvider = new firebase.auth.GoogleAuthProvider();
-
-export const storage = firebase.storage();
-export const STATE_CHANGED = firebase.storage.TaskEvent.STATE_CHANGED;
+googleAuthProvider.setCustomParameters({
+  prompt: "select_account",
+});
 
 export const firestore = firebase.firestore();
-export const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+
+// Converts milliseconds to timestamp
 export const fromMillis = firebase.firestore.Timestamp.fromMillis;
+
+// Function used to include server-generated timestamp onto a document
+export const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+
+// Allows to update a count without having to know the exact number
 export const increment = firebase.firestore.FieldValue.increment;
 
-/**`
- * Gets a users/{uid} document with username
- * @param  {string} username
+export const storage = firebase.storage();
+
+// Used to tell progress of file upload
+export const STATE_CHANGED = firebase.storage.TaskEvent.STATE_CHANGED;
+
+// Helper functions
+
+/**
+ * Gets a users/{uid} document from a username
+ * @param {string} username
+ * @returns userDoc
  */
 export async function getUserWithUsername(username: string) {
   const usersRef = firestore.collection("users");
@@ -38,16 +54,23 @@ export async function getUserWithUsername(username: string) {
   return userDoc;
 }
 
-/**`
- * Converts a firestore document to JSON
- * @param  {DocumentSnapshot} doc
+/**
+ * Converts firestore document into JSON
+ * @param {firebase.firestore.QueryDocumentSnapshot<firebase.firestore.DocumentData>} doc Post document from firestore
+ * @returns {JSON} JSON serialisable document
  */
-export function postToJSON(doc: any) {
+export function postToJSON(
+  doc: firebase.firestore.QueryDocumentSnapshot<firebase.firestore.DocumentData>
+) {
   const data = doc.data();
+  if (!data) {
+    return null;
+  }
+
   return {
     ...data,
-    // Gotcha! firestore timestamp NOT serializable to JSON. Must convert to milliseconds
-    createdAt: data?.createdAt.toMillis() || 0,
-    updatedAt: data?.updatedAt.toMillis() || 0,
+    // Turn firestore timestamp into JSON serialisable
+    createdAt: data?.createdAt?.toMillis() || 0,
+    updatedAt: data?.updatedAt?.toMillis() || 0,
   };
 }

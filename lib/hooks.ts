@@ -1,28 +1,27 @@
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, firestore } from "@/lib/firebase";
+import { auth, firestore } from "../lib/firebase";
 import { useEffect, useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
 
-const useUserData = () => {
+// Custom hook to read auth record and user profile doc
+export function useUserData() {
   const [user] = useAuthState(auth);
-  const [username, setUsername] = useState<string>();
+  const [username, setUsername] = useState(null);
 
   useEffect(() => {
-    let unsubscribe: any;
-    if (user)
-      unsubscribe = firestore
-        .collection("users")
-        .doc(user.uid)
-        .onSnapshot((doc) => {
-          setUsername(doc.data()?.username);
-        });
-    else setUsername(undefined);
+    // turn off realtime subscription
+    let unsubscribe;
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    if (user) {
+      const ref = firestore.collection("users").doc(user.uid);
+      unsubscribe = ref.onSnapshot((doc) => {
+        setUsername(doc.data()?.username);
+      });
+    } else {
+      setUsername(null);
+    }
+
+    return unsubscribe;
   }, [user]);
 
   return { user, username };
-};
-
-export default useUserData;
+}

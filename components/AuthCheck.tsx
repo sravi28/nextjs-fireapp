@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { UserContext } from "@/lib/context";
 import { useContext } from "react";
+import { UserContext } from "../lib/context";
 
-const AuthCheck = (props: any) => {
+// Component's children will be shown only to logged-in users
+export default function AuthCheck(props: any) {
   const { username } = useContext(UserContext);
 
+  // If username show children, otherwise fallback
   return username
     ? props.children
-    : props.fallback || <Link href="/enter">You must be signed in</Link>;
-};
-
-export default AuthCheck;
+    : props.fallback || (
+        <Link href="/enter" className="text-link">
+          You must be signed in
+        </Link>
+      );
+}

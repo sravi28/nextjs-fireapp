@@ -1,15 +1,46 @@
-import type { NextPage } from "next";
-import {
-  ChangeEventHandler,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import { UserContext } from "@/lib/context";
-import { auth, googleAuthProvider, firestore } from "@/lib/firebase";
-import { debounce } from "lodash";
+/* eslint-disable @next/next/no-img-element */
+import * as React from "react";
+import { auth, firestore, googleAuthProvider } from "../lib/firebase";
+import { useCallback, useContext, useEffect, useState } from "react";
+import debounce from "lodash.debounce";
+import { useRouter } from "next/router";
+import { UserContext } from "../lib/context";
+import SignOutButton from "../components/SignOutButton";
+import MetaTags from "../components/Metatags";
+import InputValidationMessage from "../components/InputValidationMessage";
 
+export default function Enter() {
+  <MetaTags title="Login page" />;
+
+  const { user, username } = useContext(UserContext);
+
+  /*
+    1. User signed out => Show SignInButton
+    2. User signed in but no username => Show UsernameForm
+    3. User signed in and has username => Bring to their profile
+    */
+  const router = useRouter();
+
+  if (user && username) {
+    router.push(`/${username}`);
+  }
+
+  return (
+    <main>
+      {user ? (
+        username ? (
+          <SignOutButton />
+        ) : (
+          <UsernameForm />
+        )
+      ) : (
+        <SignInButton />
+      )}
+    </main>
+  );
+}
+
+// Sign in with Google Button
 function SignInButton() {
   const signInWithGoogle = async () => {
     await auth.signInWithPopup(googleAuthProvider);
@@ -18,17 +49,11 @@ function SignInButton() {
   return (
     <>
       <button className="btn-google" onClick={signInWithGoogle}>
-        <img src={"/google.png"} width="30px" /> Sign in with Google
-      </button>
-      <button onClick={() => auth.signInAnonymously()}>
-        Sign in Anonymously
+        <img src={"/google.png"} width="30px" alt="Google logo" /> Sign in with
+        Google
       </button>
     </>
   );
-}
-
-function SignOutButton() {
-  return <button onClick={() => auth.signOut()}>Sign Out</button>;
 }
 
 function UsernameForm() {
@@ -36,18 +61,64 @@ function UsernameForm() {
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { user } = useContext(UserContext);
+  const { user, username } = useContext(UserContext);
 
-  const onSubmit = async (e: React.SyntheticEvent) => {
+  // Call checkUsername everytime the formValue changes
+  useEffect(() => {
+    checkUsername(formValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formValue]);
+
+  const onChange = (e) => {
+    // Set username to lowercase
+    const val = e.target.value; /*.toLowerCase()*/
+
+    // Regex to exclude unwanted characters
+    const re = /^(?=[a-zA-Z0-9._]{3,15}$)(?!.*[_.]{2})[^_.].*[^_.]$/;
+
+    // Disable validating if username is too short
+    if (val.length < 3 || val.length > 100) {
+      setFormValue(val);
+      setLoading(false);
+      setIsValid(false);
+    }
+
+    // Regex check
+    if (re.test(val)) {
+      setFormValue(val);
+      setLoading(true);
+      setIsValid(false);
+    }
+  };
+
+  // Check database for username match after each debounced change
+  // useCallback is required for debounce
+  // Debounce means it will wait for user to stop typing for 500ms before executing
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const checkUsername = useCallback(
+    debounce(async (username) => {
+      if (username.length >= 3) {
+        const ref = firestore.doc(`usernames/${username}`);
+        const { exists } = await ref.get();
+        console.log(`Firestore read executed for ${username}`);
+        setIsValid(!exists);
+        setLoading(false);
+      } else {
+        setIsValid(false);
+        setLoading(false);
+      }
+    }, 500),
+    []
+  );
+
+  const onSubmit = async (e) => {
     e.preventDefault();
 
-    if (!user) return;
-
-    // Create refs for both documents
+    // Create refs for both documents in firebase
     const userDoc = firestore.doc(`users/${user.uid}`);
     const usernameDoc = firestore.doc(`usernames/${formValue}`);
 
-    // Commit both docs together as a batch write.
+    // Commit both docs together
     const batch = firestore.batch();
     batch.set(userDoc, {
       username: formValue,
@@ -59,115 +130,31 @@ function UsernameForm() {
     await batch.commit();
   };
 
-  const onChange: ChangeEventHandler<HTMLInputElement> = (e) => {
-    // Force form value typed in form to match correct format
-    const val = e.target.value.toLowerCase();
-    const re = /^(?=[a-zA-Z0-9._]{3,15}$)(?!.*[_.]{2})[^_.].*[^_.]$/;
-
-    // Only set form value if length is < 3 OR it passes regex
-    if (val.length < 3) {
-      setFormValue(val);
-      setLoading(false);
-      setIsValid(false);
-    }
-
-    if (re.test(val)) {
-      setFormValue(val);
-      setLoading(true);
-      setIsValid(false);
-    }
-  };
-
-  useEffect(() => {
-    checkUsername(formValue);
-  }, [formValue]);
-
-  // Hit the database for username match after each debounced change
-  // useCallback is required for debounce to work
-  const checkUsername = useCallback(
-    debounce(async (username: string) => {
-      if (username.length >= 3) {
-        const ref = firestore.doc(`usernames/${username}`);
-        const { exists } = await ref.get();
-        console.log("Firestore read executed!");
-        setIsValid(!exists);
-        setLoading(false);
-      }
-    }, 500),
-    []
-  );
-
   return (
-    <section>
-      <h3>Choose Username</h3>
-      <form onSubmit={onSubmit}>
-        <input
-          name="username"
-          placeholder="myname"
-          value={formValue}
-          onChange={onChange}
-        />
-        <UsernameMessage
-          username={formValue}
-          isValid={isValid}
-          loading={loading}
-        />
-        <button type="submit" className="btn-green" disabled={!isValid}>
-          Choose
-        </button>
+    !username && (
+      <section>
+        <h3>Choose Username</h3>
+        <form onSubmit={onSubmit}>
+          <input
+            title="username"
+            name="username"
+            placeholder="username"
+            value={formValue}
+            onChange={onChange}
+          ></input>
 
-        <h3>Debug State</h3>
-        <div>
-          Username: {formValue}
-          <br />
-          Loading: {loading.toString()}
-          <br />
-          Username Valid: {isValid.toString()}
-        </div>
-      </form>
-    </section>
+          <InputValidationMessage
+            value={formValue}
+            valueName="username"
+            isValid={isValid}
+            loading={loading}
+          />
+
+          <button type="submit" className="btn-green" disabled={!isValid}>
+            Choose
+          </button>
+        </form>
+      </section>
+    )
   );
 }
-
-function UsernameMessage({
-  username,
-  isValid,
-  loading,
-}: {
-  username: string;
-  isValid: boolean;
-  loading: boolean;
-}) {
-  if (loading) {
-    return <p>Checking...</p>;
-  } else if (isValid) {
-    return <p className="text-success">{username} is available!</p>;
-  } else if (username && !isValid) {
-    return <p className="text-danger">That username is taken!</p>;
-  } else {
-    return <p></p>;
-  }
-}
-
-const EnterPage: NextPage = () => {
-  const { user, username } = useContext(UserContext);
-
-  // 1. user signed out <SignInButton />
-  // 2. user signed in, but missing username <UsernameForm />
-  // 3. user signed in, has username <SignOutButton />
-  return (
-    <main>
-      {user ? (
-        !username ? (
-          <UsernameForm />
-        ) : (
-          <SignOutButton />
-        )
-      ) : (
-        <SignInButton />
-      )}
-    </main>
-  );
-};
-
-export default EnterPage;

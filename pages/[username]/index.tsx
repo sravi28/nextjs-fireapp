@@ -1,44 +1,49 @@
-import type { GetServerSideProps } from "next";
-import PostFeed from "@/components/PostFeed";
-import UserProfile from "@/components/UserProfile";
-import { getUserWithUsername, postToJSON } from "@/lib/firebase";
+import UserProfile from "../../components/UserProfile";
+import PostFeed from "../../components/PostFeed";
+import { getUserWithUsername, postToJSON } from "../../lib/firebase";
+import MetaTags from "../../components/Metatags";
 
-// SSR
-
-export const getServerSideProps: GetServerSideProps = async ({ query }) => {
+export async function getServerSideProps({ query }) {
   const { username } = query;
-  const userDoc = await getUserWithUsername(username as string);
+
+  const userDoc = await getUserWithUsername(username);
+
+  // If no user is found, short circuit to 404
+  if (!userDoc) {
+    return {
+      notFound: true,
+    };
+  }
+
+  // JSON serialisable data
   let user = null;
   let posts = null;
 
-  if (!userDoc) return { notFound: true };
-
-  user = userDoc.data();
-  posts = (
-    await userDoc.ref
+  if (userDoc) {
+    user = userDoc.data();
+    const postsQuery = userDoc.ref
       .collection("posts")
       .where("published", "==", true)
       .orderBy("createdAt", "desc")
-      .limit(5)
-      .get()
-  ).docs.map(postToJSON);
+      .limit(5);
 
-  // Returned props must be serializable to JSON (i.e. Firestore timestamp must be converted)
+    posts = (await postsQuery.get()).docs.map(postToJSON);
+  }
+
   return {
-    props: {
-      user,
-      posts,
-    },
+    props: { user, posts }, // will be passed to the page after being rendered on the server
   };
-};
+}
 
-const UserPage = ({ user, posts }: { user: any; posts: any }) => {
+export default function UserProfilePage({ user, posts }) {
   return (
     <main>
+      <MetaTags
+        title={`${user.username}'s profile page`}
+        description={`${user.displayName}'s profile page`}
+      />
       <UserProfile user={user} />
-      <PostFeed posts={posts} />
+      <PostFeed posts={posts} admin />
     </main>
   );
-};
-
-export default UserPage;
+}

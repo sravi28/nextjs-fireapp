@@ -1,59 +1,45 @@
 import Link from "next/link";
+import HeartCount from "./HeartCount";
+import { Key } from "react";
 
-const PostItem = ({ post, admin }: { post: any; admin: boolean }) => {
-  // Naive method to calc word count and read time
+export default function PostFeed({ posts, admin }: { posts: any; admin: any }) {
+  return posts?.length > 0 ? (
+    posts.map((post: { slug: Key | null | undefined }) => (
+      <PostItem post={post} key={post.slug} admin={admin} />
+    ))
+  ) : (
+    <p>There are no posts 😮, how about you write the first one?</p>
+  );
+}
+
+function PostItem({ post, admin = false }) {
   const wordCount = post?.content.trim().split(/\s+/g).length;
-  const minutesToRead = (wordCount / 100 + 1).toFixed(0);
+  const minutesToRead: number = Number.parseInt(
+    (wordCount / 100 + 1).toFixed(0)
+  );
 
   return (
     <div className="card">
-      <Link href={`/${post.username}`}>
-        <strong>By @{post.username}</strong>
+      <Link href={`/${post.username}`} title={"To " + post.username + "'s profile"}>
+        By<strong className="text-info">@{post.username}</strong>
+
       </Link>
 
-      <Link href={`/${post.username}/${post.slug}`}>
-        <h2>{post.title}</h2>
+      <Link href={`/${post.username}/${post.slug}`} legacyBehavior>
+        <h2>
+          <a title={'Read "' + post.title + '"'}>{post.title}</a>
+        </h2>
       </Link>
 
       <footer>
         <span>
-          {wordCount} words. {minutesToRead} min read
+          {wordCount} words. {minutesToRead} minute
+          {minutesToRead > 1 ? "s" : ""} to read
         </span>
-        <span className="push-left">💗 {post.heartCount || 0} Hearts</span>
+        <span className="push-left">
+          <HeartCount heartCount={post.heartCount} />
+        </span>
       </footer>
-
-      {/* If admin view, show extra controls for user */}
-      {admin && (
-        <>
-          <Link href={`/admin/${post.slug}`}>
-            <h3>
-              <button className="btn-blue">Edit</button>
-            </h3>
-          </Link>
-
-          {post.published ? (
-            <p className="text-success">Live</p>
-          ) : (
-            <p className="text-danger">Unpublished</p>
-          )}
-        </>
-      )}
     </div>
   );
-};
-
-const PostFeed = ({
-  posts,
-  admin = false,
-}: {
-  posts: any;
-  admin?: boolean;
-}) => {
-  return posts
-    ? posts.map((post: any) => (
-        <PostItem post={post} key={post.slug} admin={admin} />
-      ))
-    : null;
-};
-
-export default PostFeed;
+}

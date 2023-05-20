@@ -1,42 +1,51 @@
-import type { GetServerSideProps } from "next";
-import Link from "next/link";
-import { firestore, getUserWithUsername, postToJSON } from "@/lib/firebase";
-import styles from "@/styles/Post.module.css";
+import styles from "../../styles/Post.module.css";
+import { firestore, getUserWithUsername, postToJSON } from "../../lib/firebase";
 import { useDocumentData } from "react-firebase-hooks/firestore";
+import PostContent from "../../components/PostContent";
+import MetaTags from "../../components/Metatags";
+import HeartCount from "../../components/HeartCount";
+import AuthCheck from "../../components/AuthCheck";
+import HeartButton from "../../components/HeartButton";
+import Link from "next/link";
 import { useContext } from "react";
-import { UserContext } from "@/lib/context";
-import AuthCheck from "@/components/AuthCheck";
-import HeartButton from "@/components/HeartButton";
-import PostContent from "@/components/PostContent";
+import { UserContext } from "../../lib/context";
 
-// SSG, then client-side hydration for real-time updates
+// Tells next to get data from server at build time
+export async function getStaticProps({ params }) {
+  // Comes from the URL parameters
+  const { username, slug } = params;
 
-export const getStaticProps: GetServerSideProps = async ({ params }) => {
-  const { username, slug } = params as {
-    username: string;
-    slug: string;
-  };
+  // Get user doc from firestore
   const userDoc = await getUserWithUsername(username);
 
   let post;
   let path;
 
   if (userDoc) {
+    // If user doc exists then get the post using the slug as ID
     const postRef = userDoc.ref.collection("posts").doc(slug);
-    post = postToJSON(await postRef.get());
 
+    post = postToJSON(await postRef.get());
+    // If no post is found, short circuit to 404
+    if (!post) {
+      return {
+        notFound: true,
+      };
+    }
+
+    // This will be used to make it easier to refetch data during later hydration
     path = postRef.path;
   }
 
+  // Return this as props to the page
   return {
     props: { post, path },
-    revalidate: 5000,
+    revalidate: 5000, // Next will regenerate page at most every 5s
   };
-};
+}
 
+// Tells next which post corresponds to which path
 export async function getStaticPaths() {
-  // Improve my using Admin SDK to select empty docs
-  // Jeff said during the course that there's a more efficient way to do this with the Admin SDK that doesn't use a collection group query
   const snapshot = await firestore.collectionGroup("posts").get();
 
   const paths = snapshot.docs.map((doc) => {
@@ -47,54 +56,66 @@ export async function getStaticPaths() {
   });
 
   return {
-    // must be in this format:
-    // paths: [
-    //   { params: { username, slug }}
-    // ],
     paths,
-    // If a post is not statically generated (e.g. newly created after static generation), fallback: 'blocking' will fallback to regular server side rendering instead of returning 404
-    fallback: "blocking",
+    fallback: "blocking", // When an unrendered page is accessed, this forces Next to manually server-side render it
   };
 }
 
-const PostPage = (props: any) => {
+export default function Post(props: any) {
+  // Easy access to document with direct path inside firestore
   const postRef = firestore.doc(props.path);
-  // Extra document read client-side to hydrate the realtime data feed
   const [realtimePost] = useDocumentData(postRef);
+  const { username } = useContext(UserContext);
 
+  // Gets the latest version of the post, or fallsback to the prerendered data
   const post = realtimePost || props.post;
-
-  const { user: currentUser } = useContext(UserContext);
 
   return (
     <main className={styles.container}>
+      <MetaTags
+        title={post?.title || "Post title"}
+        description={`Post by ${post?.username}`}
+      />
+
       <section>
         <PostContent post={post} />
       </section>
 
       <aside className="card">
-        <p>
-          <strong>{post.heartCount || 0} 🤍</strong>
-        </p>
+        <div>
+          <strong>
+            <HeartCount heartCount={post.heartCount} />
+          </strong>
+        </div>
 
+        {/* Show heart button for signed-in users, or link to sign-up page */}
         <AuthCheck
           fallback={
-            <Link href="/enter">
-              <button>💗 Sign Up</button>
+            <Link legacyBehavior href="/enter">
+              <a>
+                <button title="Sign Up" className="btn-heart">
+                  💗 Sign Up
+                </button>
+              </a>
             </Link>
           }
         >
           <HeartButton postRef={postRef} />
+          {username == post.username && (
+            <Link legacyBehavior href={`/admin/${post.slug}`}>
+              <a>
+                <button
+                  style={{ marginRight: 0 }}
+                  className="btn-blue"
+                  title="Edit"
+                >
+                  Edit
+                </button>
+              </a>
+            </Link>
+          )}
         </AuthCheck>
-
-        {currentUser?.uid === post.uid && (
-          <Link href={`/admin/${post.slug}`}>
-            <button className="btn-blue">Edit Post</button>
-          </Link>
-        )}
       </aside>
     </main>
   );
-};
-
-export default PostPage;
+}

@@ -9,7 +9,7 @@
 }
 
 .container aside {
-  align-items: center;
+  /* align-items: center; */
   display: flex;
   flex-direction: column;
   width: 20%;

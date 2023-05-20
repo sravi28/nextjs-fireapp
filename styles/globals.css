@@ -1,18 +1,22 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400&display=swap");
 
+/* Dark mode by default */
 :root {
-  --color-bg: #eef0f1;
-  --color-text: #08090a;
-  --color-blue: #3b49df;
-  --color-red: #df3b3b;
-  --color-green: #3bdf72;
-  --color-gray: #b5bdc4;
+  --color-bg: #16213e;
+  --color-text: #eef0f1;
+  --color-white: #0f3460;
+  --color-blue: #4e59d6;
+  --color-light-blue: #537ec5;
+  --color-red: #c74b50;
+  --color-green: #4e9f3d;
+  --color-gray: #3c4f65;
 }
+
 html,
 body {
+  font-family: "Noto Sans", sans-serif;
   padding: 0;
   margin: 0;
-  font-family: "Noto Sans", sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
   margin-top: 50px;
@@ -38,6 +42,11 @@ a {
   cursor: pointer;
 }
 
+a:has(button) {
+  display: flex;
+  flex-direction: column;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -47,12 +56,19 @@ img {
 }
 
 input {
+  background-color: var(--color-white);
+  color: var(--color-text);
   display: inline-block;
   outline: none;
   border: none;
   font-size: 1.5rem;
   width: 100%;
   padding: 5px 10px;
+}
+
+::placeholder {
+  color: var(--color-text);
+  opacity: 75%;
 }
 
 fieldset {
@@ -70,7 +86,7 @@ code {
 .navbar {
   height: 70px;
   width: 100%;
-  background: white;
+  background: var(--color-white);
   color: var(--colors-text);
   position: fixed;
   top: 0;
@@ -95,6 +111,7 @@ code {
   width: 50px;
   height: 50px;
   cursor: pointer;
+  margin: 0.5rem 1rem 0.5rem 0;
 }
 
 .navbar li {
@@ -140,21 +157,21 @@ button[disabled] {
 
 button.btn-blue {
   background-color: var(--color-blue);
-  color: white;
+  color: var(--color-text);
 }
 
 button.btn-red {
   background-color: var(--color-red);
-  color: white;
+  color: var(--color-text);
 }
 
 button.btn-green {
   background-color: var(--color-green);
-  color: white;
+  color: var(--color-text);
 }
 
 button.btn-google {
-  background-color: white;
+  background-color: var(--color-white);
   color: var(--color-text);
 }
 
@@ -165,10 +182,33 @@ button.btn-google {
 
 button.btn-logo {
   background-color: var(--color-text);
-  color: white;
+  color: var(--color-white);
   text-transform: uppercase;
   font-size: 1.5rem;
   padding: 0.5rem 1rem;
+}
+
+button.btn-heart {
+  margin-right: 0px;
+  background-color: var(--color-light-blue);
+  /* color: white; */
+}
+
+button.btn-theme {
+  background-color: var(--color-light-blue);
+  align-items: center;
+  opacity: 80%;
+  width: 50px;
+  height: 50px;
+  margin-right: 0px;
+  padding: 0.5rem;
+  border-radius: 50%;
+}
+
+button.btn-theme > img {
+  margin: 0;
+  width: auto;
+  height: auto;
 }
 
 /* Cards */
@@ -176,9 +216,10 @@ button.btn-logo {
 .card {
   padding: 2rem;
   margin: 1rem 0;
-  background-color: white;
+  background-color: var(--color-white);
   border: 1px solid var(--color-gray);
   border-radius: 8px;
+  border-color: var(--color-light-blue);
 }
 
 .card footer {
@@ -194,7 +235,7 @@ button.btn-logo {
 }
 
 .card-info {
-  color: white;
+  color: var(--color-white);
   background: var(--color-blue);
 }
 
@@ -227,14 +268,19 @@ input[type="file"] {
 .upload-snippet {
   width: 75%;
   margin-left: auto;
-  background: white;
+  background: var(--color-bg);
   padding: 5px;
   margin: 5px 0;
+  border: 5px solid var(--color-gray);
 }
 /* Utilities */
 
 .push-left {
   margin-left: auto;
+}
+
+.push-right {
+  margin-right: auto;
 }
 
 .text-sm {
@@ -253,7 +299,13 @@ input[type="file"] {
 
 .text-info {
   font-weight: bold;
-  color: var(--color-blue);
+  color: var(--color-green);
+}
+
+.text-link {
+  font-weight: bold;
+  color: var(--color-green);
+  text-decoration: underline;
 }
 
 .box {
@@ -270,4 +322,60 @@ input[type="file"] {
 
 .hidden {
   display: none;
+}
+
+/* Custom */
+
+.custom-textarea {
+  background-color: var(--color-white);
+  color: var(--color-text);
+  outline: none;
+  overflow: auto;
+}
+
+.count-div {
+  color: var(--color-gray);
+  font-size: 14px;
+  border-left: 0;
+}
+
+.count-text {
+  margin-top: 15px;
+}
+
+.grid-image-upload-snippet {
+  display: grid;
+  grid-template-columns: 100%;
+  grid-template-rows: 35px 100px;
+}
+
+.markdown-word-wrap {
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+ul.footer {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+li.footer {
+  border-radius: 50%;
+}
+
+select.footer {
+  background-color: var(--color-white);
+  color: var(--color-text);
+  border-radius: 20%;
+  border-color: transparent;
+  font-weight: bold;
+}
+
+option.footer {
+  font-weight: bold;
 }

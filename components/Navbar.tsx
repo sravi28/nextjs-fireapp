@@ -1,55 +1,68 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { useContext } from "react";
-import { UserContext } from "@/lib/context";
-import { useRouter } from "next/router";
+import { UserContext } from "../lib/context";
+import DarkModeButton from "./DarkModeButton";
+import SignOutButton from "./SignOutButton";
 
-const Navbar = () => {
+export default function Navbar() {
   const { user, username } = useContext(UserContext);
-
-  //   const router = useRouter();
-
-  //   const signOut = () => {
-  //     auth.signOut();
-  //     router.reload();
-  //   };
 
   return (
     <nav className="navbar">
       <ul>
         <li>
-          <Link href="/">
-            <button className="btn-logo">AnimeWorld</button>
+          <Link legacyBehavior href="/">
+            <a>
+              <button title="Home Page" className="btn-logo">
+                FEED
+              </button>
+            </a>
           </Link>
         </li>
 
+        {/* user is signed-in and has a username */}
         {username && (
           <>
             <li className="push-left">
-              <button>Sign Out</button>
+              <SignOutButton />
             </li>
             <li>
-              <Link href="/admin">
-                <button className="btn-blue">Write Posts</button>
+              <Link legacyBehavior href="/admin">
+                <a>
+                  <button title="Write Posts" className="btn-blue">
+                    Your Posts
+                  </button>
+                </a>
               </Link>
             </li>
             <li>
-              <Link href={`/${username}`}>
-                <img src={user?.photoURL || "/hacker.png"} />
+              <Link legacyBehavior href={`/${username}`}>
+                <a>
+                  <img title="User Profile" src={user?.photoURL} alt="" />
+                </a>
               </Link>
             </li>
           </>
         )}
 
+        {/* user is not signed-in OR has not created username */}
         {!username && (
-          <li>
-            <Link href="/enter">
-              <button className="btn-blue">Log in</button>
+          <li className="push-left">
+            <Link legacyBehavior href="/enter">
+              <a>
+                <button title="Log in" className="btn-blue">
+                  Log in
+                </button>
+              </a>
             </Link>
           </li>
         )}
+
+        <li>
+          <DarkModeButton />
+        </li>
       </ul>
     </nav>
   );
-};
-
-export default Navbar;
+}
