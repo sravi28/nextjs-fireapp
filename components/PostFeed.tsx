@@ -12,7 +12,7 @@ export default function PostFeed({ posts, admin }: { posts: any; admin: any }) {
   );
 }
 
-function PostItem({ post, admin = false }) {
+function PostItem({ post, admin = false }: any) {
   const wordCount = post?.content.trim().split(/\s+/g).length;
   const minutesToRead: number = Number.parseInt(
     (wordCount / 100 + 1).toFixed(0)
@@ -20,9 +20,11 @@ function PostItem({ post, admin = false }) {
 
   return (
     <div className="card">
-      <Link href={`/${post.username}`} title={"To " + post.username + "'s profile"}>
+      <Link
+        href={`/${post.username}`}
+        title={"To " + post.username + "'s profile"}
+      >
         By<strong className="text-info">@{post.username}</strong>
-
       </Link>
 
       <Link href={`/${post.username}/${post.slug}`} legacyBehavior>
